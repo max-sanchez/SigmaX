@@ -143,18 +143,21 @@ public class LedgerManager
      */
     public boolean executeTransaction(Transaction transaction)
     {
+    	System.out.println("Executing transaction: " + transaction.getFlatTransaction());
         try
         {
             String sourceAddress = transaction.getSourceAddress();
             long sourceAmount = transaction.getSourceAmount();
             
-            if (getAddressSignatureCount(sourceAddress) + 1 != transaction.getSignatureIndex())
+            if (getAddressSignatureCount(sourceAddress) != transaction.getSignatureIndex() && getAddressSignatureCount(sourceAddress) != 0)
             {
+            	System.err.println("sig invalid");
                 return false; //The signature is valid, however it isn't using the expected signatureIndex. Blocked to ensure a compromised Lamport key from a previous transaction can't be used. 
             }
             
             if (getAddressBalance(sourceAddress) < sourceAmount) //sourceAddress has an insufficient balance
             {
+            	System.err.println("Insufficient balance from address: " + sourceAddress);
                 return false; //Insufficient balance
             }
             
@@ -164,19 +167,21 @@ public class LedgerManager
             addressBalances.put(sourceAddress, getAddressBalance(sourceAddress) - sourceAmount);
             for (int i = 0; i < outputs.size(); i++)
             {
-                addressBalances.put(outputs.get(i).getFirst(), getAddressBalance(outputs.get(i).getFirst()) + outputs.get(i).getSecond());
+            	System.out.println("Giving: " + outputs.get(i).getSecond() + " to " + outputs.get(i).getFirst());
+                adjustAddressBalance(outputs.get(i).getFirst(), outputs.get(i).getSecond());
             }
             adjustAddressSignatureCount(sourceAddress, 1);
             return true;
         } catch (Exception e)
         {
+        	e.printStackTrace();
             return false;
         }
     }
 
     /**
      * This method reverse-executes a given transaction object.
-     * Used primarily when a blockchain fork is resolved, and transactions have to be reversed that existed in the now-forked block(s).
+     * Used primarily when a Blockchain fork is resolved, and transactions have to be reversed that existed in the now-forked block(s).
      * 
      * @param transaction String-formatted transaction to execute
      * 
@@ -223,6 +228,8 @@ public class LedgerManager
      */
     public boolean writeToFile()
     {
+    	System.out.println("Writing ledger to file...");
+    	System.out.println("Addresses to write: " + addresses.size());
         try
         {
             PrintWriter out = new PrintWriter(addressDatabase);
@@ -242,21 +249,21 @@ public class LedgerManager
     }
 
     /**
-     * Returns the last-used signature index of an address.
+     * Returns the next-to-be-used signature index of an address.
      * 
      * @param address Address to retrieve the latest index for
      * 
-     * @return int Last signature index used by address
+     * @return int Next signature index to be used by address
      */
     public int getAddressSignatureCount(String address)
     {
         if (addressSignatureCounts.containsKey(address))
         {
-            return addressSignatureCounts.get(address);
+            return addressSignatureCounts.get(address) + 1;
         }
         else
         {
-            return -1;
+            return 0;
         }
     }
 
@@ -365,7 +372,7 @@ public class LedgerManager
             else
             {
                 addressBalances.put(address, newAmount);
-                addressSignatureCounts.put(address, 0);
+                addressSignatureCounts.put(address, -1);
                 addresses.add(address);
             }
             if (addressBalances.get(address) == 0)

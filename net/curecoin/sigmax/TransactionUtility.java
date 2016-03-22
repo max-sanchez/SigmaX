@@ -101,6 +101,7 @@ public class TransactionUtility
         {
             fullTransaction += ";" + outputAddresses.get(i) + "," + outputAmounts.get(i);
         }
+        
         fullTransaction += ";" + MerkleAddressUtility.getMerkleSignature(fullTransaction, privateKey, index, inputAddress) + "," + index; //Now it's actually the 'full transaction'
         
         try

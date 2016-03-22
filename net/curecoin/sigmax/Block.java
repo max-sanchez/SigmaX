@@ -157,7 +157,7 @@ public class Block
 		
 		if (!Utilities.isBigInteger(firstChunk[3]))
 		{
-			throw new BlockFormatException("The difficulty must be a BigInteger!");
+			throw new BlockFormatException("The difficulty must be a BigInteger in Base 10!");
 		}
 		difficulty = new BigInteger(firstChunk[3], 10);
 		
@@ -179,11 +179,14 @@ public class Block
 			throw new BlockFormatException("The ledger hash must be 64 hexadecimal characters!");
 		}
 		
-		String[] transactionsArray = parts[2].replace("{", "").replace("}", "").split("|");
+		String[] transactionsArray = parts[2].replace("{", "").replace("}", "").split("\\|");
+		System.out.println("After: " + parts[2].replace("{", "").replace("}", ""));
+		System.out.println("TXPARTS: " + parts[2]);
 		if (!(transactionsArray.length <= 1 && transactionsArray[0].equals("")))
 		{
 			for (String transactionString : transactionsArray)
 			{
+				System.out.println("Transaction: " + transactionString);
 				Transaction transaction = new Transaction(transactionString);
 				transactions.add(transaction);
 			}
@@ -224,7 +227,7 @@ public class Block
 	private String assembleBlock()
 	{
 		// Assemble the block into a flat String
-		String rawBlock = "{" + timestamp + ":" + blockNum + ":" + previousBlockHash + ":" + difficulty + ":" + winningNonce + "}#{" + ledgerHash + "}#";
+		String rawBlock = "{" + timestamp + ":" + blockNum + ":" + previousBlockHash + ":" + difficulty + ":" + winningNonce + ":" + minerAddress + "}#{" + ledgerHash + "}#";
 		String transactionString = "";
 		for (Transaction transaction : transactions)
 		{

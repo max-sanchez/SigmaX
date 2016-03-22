@@ -33,4 +33,14 @@ public class Pair <A, B>
 	{
 		return b;
 	}
+	
+	public void setFirst(A a)
+	{
+		this.a = a;
+	}
+	
+	public void setSecond(B b)
+	{
+		this.b = b;
+	}
 }

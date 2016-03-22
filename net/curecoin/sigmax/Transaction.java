@@ -42,7 +42,7 @@ public class Transaction
 	public Transaction(String transactionData) throws TransactionFormatException, TransactionContentException
 	{
 		String[] parts = transactionData.split(";");
-		if (parts.length < 3) // Need input address + amount, at least one output address + amoumt, and a signature
+		if (parts.length < 3) // Need input address + amount, at least one output address + amount, and a signature
 		{
 			throwFormatException();
 		}
@@ -54,7 +54,14 @@ public class Transaction
 		String message = "";
 		for (int i = 0; i < parts.length - 1; i++)
 		{
-			message += parts[i];
+			if (i == 0)
+			{
+				message += parts[i];
+			}
+			else
+			{
+				message += ";" + parts[i];
+			}
 			
 			String[] subparts = parts[i].split(",");
 			if (subparts.length != 2)
@@ -107,13 +114,13 @@ public class Transaction
 		
 		transactionFee = sourceAmount - outputAmount;
 		
-		if (!Utilities.isLong(signature[1]))
+		if (!Utilities.isLong(signature[2]))
 		{
 			throwFormatException();
 		}
 		
-		this.signature = signature[0];
-		this.signatureIndex = Long.parseLong(signature[1]);
+		this.signature = signature[0] + "," + signature[1];
+		this.signatureIndex = Long.parseLong(signature[2]);
 		if (!MerkleAddressUtility.verifyMerkleSignature(message, this.signature, sourceAddress, signatureIndex))
 		{
 			throw new TransactionContentException("Transaction from " + sourceAddress + " is not accompanied by a valid signature!");
@@ -181,6 +188,21 @@ public class Transaction
 			}
 		}
 		return false;
+	}
+	
+	/**
+	 * Returns a human-readable transaction summary: source amount and address, and all output amounts and addresses.
+	 * @return A human-readable transaction summary
+	 */
+	public String getTransactionSummary()
+	{
+		String transactionSummary = "";
+		transactionSummary += getSourceAmount() + " from " + getSourceAddress() + " sent to: ";
+		for (Pair<String, Long> output : outputs)
+		{
+			transactionSummary += output.getFirst() + "(" + output.getSecond() + " SigmaX) ";
+		}
+		return transactionSummary;
 	}
 	
 	private void throwFormatException() throws TransactionFormatException

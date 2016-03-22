@@ -12,6 +12,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.math.BigInteger;
 import java.util.ArrayList;
 
 /**
@@ -24,9 +25,12 @@ import java.util.ArrayList;
  * 
  * 
  */
+
 public class Blockchain
 {
 	private static final long BLOCK_MINING_REWARD = 5_000_000_000L;
+	
+	private static final int BLOCK_HISTORY_FOR_DIFFICULTY = 100;
 	
 	// The number of recent blocks to store
 	private int chainCutoff = 500;
@@ -83,8 +87,11 @@ public class Blockchain
 	 */
 	private boolean addBlock(Block block, boolean fromBlockchainFile)
 	{	
+		System.out.println("Attempting to add block #" + block.blockNum + " with the hash of " + block.blockHash + "...");
+		
 		if (!block.isMinerHashBelowTarget())
 		{
+			System.out.println("Block #" + block.blockNum + " with the hash of " + block.blockHash + " was rejected for being below its own target.");
 			return false;
 		}
 		
@@ -106,8 +113,6 @@ public class Blockchain
 				}
 			}
 		}
-		
-		System.out.println("Attempting to add block #" + block.blockNum + " with the hash of " + block.blockHash + "...");
 		try
 		{
 			if (chains.size() == 0) // We should be adding the genesis block.
@@ -132,9 +137,12 @@ public class Blockchain
 			// Check for duplicates
 			for (ArrayList<Block> chain : chains)
 			{
-				if (chain.get(block.blockNum).blockHash.equals(block.blockHash))
+				if (chain.size() > block.blockNum)
 				{
-					return false; // Duplicate   
+					if (chain.get(block.blockNum).blockHash.equals(block.blockHash))
+					{
+						return false; // Duplicate   
+					}
 				}
 			}
 
@@ -143,7 +151,7 @@ public class Blockchain
 			if (block.blockNum > largestChain.size())
 			{
 				blockQueue.add(block);
-				System.out.println("Added block " + block.blockNum + " to the blockQueue for later processing.");
+				System.out.println("Added block #" + block.blockNum + " to the blockQueue for later processing.");
 				return false;
 			}
 			
@@ -171,6 +179,12 @@ public class Blockchain
 					{
 						if (block.blockNum == potentialChain.size()) // Add on to an existing fork
 						{
+							if (!Utilities.calculateNextDifficulty(getLastNBlocks(potentialChain, BLOCK_HISTORY_FOR_DIFFICULTY)).equals(block.difficulty))
+							{
+								System.err.println("ERROR: BLOCK NOT CORRECT DIFFICULTY! Needed: " +
+												    Utilities.calculateNextDifficulty(getLastNBlocks(potentialChain, BLOCK_HISTORY_FOR_DIFFICULTY)) + " provided: " + block.difficulty);
+								return false;
+							}
 							potentialChain.add(block);
 							System.out.println("[INFO] Added a block with hash " + block.blockHash + " to a shorter chain than master.");
 							
@@ -244,11 +258,20 @@ public class Blockchain
 						else // Need to make a new fork
 						{
 							ArrayList<Block> newFork = new ArrayList<Block>(potentialChain);
-							newFork.add(block.blockNum, block);
-							while (newFork.size() > block.blockNum + 1)
+							while (newFork.get(newFork.size() - 1).blockNum >= block.blockNum)
 							{
 								newFork.remove(newFork.size() - 1);
 							}
+							
+							if (!Utilities.calculateNextDifficulty(getLastNBlocks(newFork, BLOCK_HISTORY_FOR_DIFFICULTY)).equals(block.difficulty))
+							{
+								System.err.println("ERROR: BLOCK NOT CORRECT DIFFICULTY! Needed: " +
+												    Utilities.calculateNextDifficulty(getLastNBlocks(newFork, BLOCK_HISTORY_FOR_DIFFICULTY)) + " provided: " + block.difficulty);
+								return false;
+							}
+							
+							newFork.add(block.blockNum, block);
+
 							System.out.println("[INFO] Created a new fork with a block with hash " + block.blockHash + ".");
 							chains.add(newFork);
 							// No need to test for switching forks, because this can't possibly be the best if it's at most as long as an inferior chain
@@ -259,11 +282,17 @@ public class Blockchain
 				return false;
 			}
 			
-			// If execution reached this point, then the block is added to the end of the longest chain, so execute transactions.
+			// If execution reached this point, then the block is added to the end of the longest chain, so execute transactions if not from blockchain file.
+			largestChain.add(block);
 			if (!fromBlockchainFile)
+			{
+				System.out.println("Executing...");
 				return executeTransactionsForBlock(block);
+			}
 			else
+			{
 				return true;
+			}
 			
 			
 		} catch (Exception e)
@@ -348,13 +377,45 @@ public class Blockchain
 	}
 	
 	/**
+	 * Calculates the target difficulty for the next block added to the current largest chain
+	 * 
+	 * @return BigInteger The target difficulty for the next block for the current largest chain
+	 */
+	public BigInteger getNextDifficultyForLongestChain()
+	{
+		return Utilities.calculateNextDifficulty(getLastNBlocks(getLongestChain(), BLOCK_HISTORY_FOR_DIFFICULTY));
+	}
+	
+	/**
+	 * Returns the hash of the last block on the largest chain
+	 * 
+	 * @return String The hash of the last block on the largest chain
+	 */
+	public String getHashOfLastBlockOnLongestChain()
+	{
+		ArrayList<Block> longestChain = getLongestChain();
+		return longestChain.get(longestChain.size() - 1).blockHash;
+	}
+	
+	/**
+	 * Returns the block number of the last block on the largest chain
+	 * 
+	 * @return int The block number of the last block on the largest chain
+	 */
+	public int getBlockNumOfLastBlockOnLongestChain()
+	{
+		ArrayList<Block> longestChain = getLongestChain();
+		return longestChain.get(longestChain.size() - 1).blockNum;
+	}
+	
+	/**
      * Writes a block to the blockchain file
      * 
      * @return boolean Whether write was successful
      */
     private boolean writeBlockToFile(Block block)
     {
-        System.out.println("Writing a block to file...");
+        System.out.println("Writing a block to file: " + block.rawBlock);
         try (FileWriter fileWriter = new FileWriter(dbFolder + "/blockchain.dta", true);
         BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
         PrintWriter out = new PrintWriter(bufferedWriter))
@@ -378,6 +439,7 @@ public class Blockchain
      */
 	private boolean executeTransactionsForBlock(Block block)
 	{
+		System.out.println("Executing transactions for block #" + block.blockNum);
 		if (ledgerManager.lastBlockNum >= block.blockNum)
 		{
 			return true; // Transaction has already been applied
@@ -415,7 +477,32 @@ public class Blockchain
 		}
 
 		ledgerManager.setLastBlockNum(block.blockNum);
+		ledgerManager.writeToFile();
 		return true;
+	}
+	
+	/**
+	 * Get the block at the provided block index (block number) from the largest chain.
+	 * 
+	 * @param index Block num to lookup
+	 * @return The block at the provided block index (block number) from the largest chain
+	 */
+	public Block getBlock(int index)
+	{
+		ArrayList<Block> longest = getLongestChain();
+		if (longest.size() - 1 >= index)
+		{
+			return longest.get(index);
+		}
+		return null;
+	}
+	
+	/**
+	 * Passthrough to LedgerManager's getAddressSignatureCount() method
+	 */
+	public int getAddressNextIndex(String address)
+	{
+		return ledgerManager.getAddressSignatureCount(address);
 	}
 	
 	/**
@@ -470,5 +557,22 @@ public class Blockchain
 		}
 		
 		return largestChain;
+	}
+	
+	/**
+	 * Returns an ArrayList<Block> containing the most recent n blocks from the provided chain.
+	 * @param chain Chain to draw blocks from
+	 * @param n Number of recent blocks to pull
+	 * @return ArrayList<Block> containing the most recent n blocks from the provided chain
+	 */
+	private ArrayList<Block> getLastNBlocks(ArrayList<Block> chain, int n)
+	{
+		ArrayList<Block> previousBlocks = new ArrayList<>();
+		
+		for (int i = chain.size() - 1; (i >= 0 && i > chain.size() - (n + 1)); i--)
+		{
+			previousBlocks.add(chain.get(i));
+		}
+		return previousBlocks;
 	}
 }

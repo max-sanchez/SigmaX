@@ -12,7 +12,7 @@ import java.net.*;
 import java.util.*;
 
 /**
- * This thread listens on a provided port (8015 by default) for incoming connections, and attempts to make connections to external peers based on guidance from MainClass.
+ * This thread listens on a provided port (8025 by default) for incoming connections, and attempts to make connections to external peers based on guidance from MainClass.
  * It needs a bit of help with memory management and resource deallocation, but otherwise it works. Good enough for 2.0.0a1.
  * 
  * Future plans include some form of UPNP support and NAT punchthroughs.
@@ -30,7 +30,7 @@ public class PeerNetwork extends Thread
      */
     public PeerNetwork(int listeningPort)
     {
-        this.listenPort = 8015;
+        this.listenPort = listeningPort;
         this.peerThreads = new ArrayList<PeerThread>();
         this.newPeers = new ArrayList<String>();
     }
