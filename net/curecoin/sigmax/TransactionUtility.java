@@ -103,7 +103,7 @@ public class TransactionUtility
         }
         
         fullTransaction += ";" + MerkleAddressUtility.getMerkleSignature(fullTransaction, privateKey, index, inputAddress) + "," + index; //Now it's actually the 'full transaction'
-        
+        System.out.println(fullTransaction);
         try
         {
         	return new Transaction(fullTransaction);

@@ -145,7 +145,7 @@ public class AddressManager
      * 
      * @return String An insecure private key (seed for Lamport Signatures)
      */
-    public String getPrivateKey()
+    private String getPrivateKey()
     {
         String characterSet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         Random random = new Random();

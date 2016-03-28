@@ -67,6 +67,25 @@ public class Blockchain
 	 */
 	public boolean addBlockAndSave(Block block, boolean fromBlockchainFile)
 	{
+		if (blockQueue.size() > 0)
+		{
+			boolean addedABlock = true;
+			while (addedABlock)
+			{
+				addedABlock = false;
+				for (int i = 0; i < blockQueue.size(); i++)
+				{
+					if (addBlock(blockQueue.get(i), false))
+					{
+						addedABlock = true;
+						System.out.println("Added a block (#" + blockQueue.get(i).blockNum + ") from the queue!");
+						blockQueue.remove(i);
+						i--;
+					}
+				}
+			}
+		}
+		
 		if (addBlock(block, fromBlockchainFile))
 		{
 			if (!fromBlockchainFile)
@@ -95,24 +114,6 @@ public class Blockchain
 			return false;
 		}
 		
-		if (blockQueue.size() > 0)
-		{
-			boolean addedABlock = true;
-			while (addedABlock)
-			{
-				addedABlock = false;
-				for (int i = 0; i < blockQueue.size(); i++)
-				{
-					if (addBlock(blockQueue.get(i), false))
-					{
-						addedABlock = true;
-						System.out.println("Added a block (#" + blockQueue.get(i).blockNum + ") from the queue!");
-						blockQueue.remove(i);
-						i--;
-					}
-				}
-			}
-		}
 		try
 		{
 			if (chains.size() == 0) // We should be adding the genesis block.

@@ -382,13 +382,14 @@ public class MainClass
                             outputAddress.add(destinationAddress);
                             ArrayList<Long> outputAmount = new ArrayList<Long>();
                             outputAmount.add(amount);
-                            Transaction fullTransaction = TransactionUtility.signTransaction(addressManager.getPrivateKey(), addressManager.getDefaultAddress(), amount, outputAddress, outputAmount, blockchain.getAddressNextIndex(addressManager.getDefaultAddress()));
+                            Transaction fullTransaction = TransactionUtility.signTransaction(addressManager.getDefaultPrivateKey(), addressManager.getDefaultAddress(), amount, outputAddress, outputAmount, blockchain.getAddressNextIndex(addressManager.getDefaultAddress()));
                             pendingTransactions.addTransaction(fullTransaction);
                             peerNetwork.broadcast("TRANSACTION " + fullTransaction.getFlatTransaction());
                             System.out.println("Sending " + amount + " from " + address + " to " + destinationAddress);
                             rpcAgent.rpcThreads.get(i).response = "Sent " + amount + " from " + address + " to " + destinationAddress;
                         } catch (Exception e)
                         {
+                        	e.printStackTrace();
                             rpcAgent.rpcThreads.get(i).response = "Syntax (don't use < and >): send <amount> <destination>";
                         }
                     }
@@ -500,7 +501,7 @@ public class MainClass
                     File JarFile = new File(MainClass.class.getProtectionDomain().getCodeSource().getLocation().toURI());//Get the absolute location of the .jar file
                     PrintWriter out = new PrintWriter(new File("launch.bat")); //Get a PrintWriter object to make a batch file
                     out.println("@echo off"); //turn echo off for batch file
-                    out.println("title SigmaX 1.0.0b1 Testnet Miner"); 
+                    out.println("title SigmaX 1.0.0b2 Testnet Daemon"); 
                     out.println("java -jar \"" + JarFile.getPath() + "\"");
                     out.println("start /b \"\" cmd /c del \"%~f0\"&exit /b");
                     out.close(); //saves file

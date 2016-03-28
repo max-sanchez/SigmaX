@@ -121,8 +121,11 @@ public class Transaction
 		
 		this.signature = signature[0] + "," + signature[1];
 		this.signatureIndex = Long.parseLong(signature[2]);
+		System.out.println("Signature: " + this.signature);
+		System.out.println("Signature index: " + this.signatureIndex);
 		if (!MerkleAddressUtility.verifyMerkleSignature(message, this.signature, sourceAddress, signatureIndex))
 		{
+			System.out.println("Message: " + message);
 			throw new TransactionContentException("Transaction from " + sourceAddress + " is not accompanied by a valid signature!");
 		}
 	}
@@ -204,6 +207,20 @@ public class Transaction
 		}
 		return transactionSummary;
 	}
+
+    public boolean equals(Object toTest)
+    {
+    	if (toTest instanceof Transaction)
+    	{
+    		Transaction txToCheck = (Transaction)toTest;
+	    	if (txToCheck.getFlatTransaction().equals(getFlatTransaction()))
+	    	{
+	    		return true;
+	    	}
+    	}
+    	return false;
+    }
+	
 	
 	private void throwFormatException() throws TransactionFormatException
 	{
